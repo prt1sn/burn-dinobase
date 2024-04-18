@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding land</title>
+    <link href="https://fonts.googleapis.com/css?family=Ultra|Alfa+Slab+One|Merriweather:400,400i|Source+Serif+Pro:400,700" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tachyons/4.8.1/tachyons.min.css" rel="stylesheet">
+    <link href="css.css" rel="stylesheet">
+    <link rel="shortcut icon" href="mg/dnvtr.jpg" type="image/x-icon">
+    <script type="text/javascript" src="https://unpkg.com/jquery@3.3.1/dist/jquery.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+</head>
+<body>
+    
+
+
+    <div class="container">
+
+      <!-- START BLOCK BURN DINO -->
+
+      <div class="brnchllng">
+        <h1 class="alfa tracked-tight section-1-headline">Burn $Dino challenge</h1>
+        
+        <p>Check the code of this page github url</p>
+        <div>
+          <button type="button" onclick="connectWallet();" id="connectButton">Connect Metamask Wallet</button> and enter the count of tokens to burn, then click on fire
+          <div class="brnlndn">
+            <input type="text" class="form-control" id="burnAmount" placeholder="Count $Dino burn"  required="">
+		  
+            <button type="button" onclick="changeCoolNumber();" id="burnButton"><img class="frdn" src="mg/fire.gif"></button>
+        
+          </div>
+        </div>
+        <p>
+          <button type="button" onclick="checkBurnBalance();" id="totalButton">Check Total Burn</button> <span id="totalBurn">...</span> <br />
+			Status metamask wallet: <span id="status">Loading...</span><br />
+			Target Burn: 1 000 000 000</p>
+      <p class="chckxplrr"> Check transactions in base explorer
+        <a target="_blank" href="https://basescan.org/token/0x85e90a5430af45776548adb82ee4cd9e33b08077?a=0x000000000000000000000000000000000000dead">https://basescan.org/token/0x85e90a5430af45776548adb82ee4cd9e33b08077?a=0x000000000000000000000000000000000000dead</a>
+      </p>
+      
+      </div>
+      <script type="text/javascript">
+        const abi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            { 
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            { 
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "account",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+    
+        async function connectWallet() {
+          if (window.ethereum) {
+            try {
+              await window.ethereum.request({ method: 'eth_requestAccounts' });
+              const provider = new ethers.providers.Web3Provider(window.ethereum);
+              const signer = provider.getSigner();
+              const account = await signer.getAddress();
+              updateStatus(`Wallet connected: ${account}`);
+              await switchToBaseNetwork(provider);
+              window.contract = new ethers.Contract(
+                '0x85e90a5430af45776548adb82ee4cd9e33b08077',
+                abi,
+                signer
+              );
+              updateStatus('Ready!');
+            } catch (error) {
+              console.error('Error connecting wallet:', error);
+              updateStatus('Error connecting wallet.');
+            }
+          } else {
+            updateStatus('Please install MetaMask.');
+          }
+        }
+    
+        async function switchToBaseNetwork(provider) {
+                try {
+                    await provider.send("wallet_switchEthereumChain", [{ chainId: '0x2105' }]);
+                } catch (error) {
+                    if (error.code === 4902) {
+                        try {
+                            await provider.send("wallet_addEthereumChain", [
+                                {
+                                    chainId: '0x2105',
+                                    chainName: 'Base Mainnet',
+                                    nativeCurrency: {
+                                        name: 'ETH',
+                                        symbol: 'ETH',
+                                        decimals: 18,
+                                    },
+                                    rpcUrls: ['https://mainnet.base.org'],
+                                    blockExplorerUrls: ['https://basescan.org/'],
+                                },
+                            ]);
+                        } catch (addError) {
+                            console.error('Error adding Base network:', addError);
+                            updateStatus('Error adding network.');
+                        }
+                    } else {
+                        console.error('Error switching to Base network:', error);
+                        updateStatus('Error switching networks.');
+                    }
+                }
+            }
+    
+            async function loadContract() {
+            return await new window.web3.eth.Contract(
+            '0x85e90a5430af45776548adb82ee4cd9e33b08077'
+          );
+        }
+    
+            async function getCurrentAccount() {
+                const accounts = await window.web3.eth.getAccounts();
+                return accounts[0];
+            }
+    
+            async function changeCoolNumber() {
+                const burnAddress = '0x000000000000000000000000000000000000dEaD';
+                const burnAmount = ethers.utils.parseUnits(
+                    document.getElementById("burnAmount").value, 18
+                );
+                updateStatus(`Burning ${document.getElementById("burnAmount").value} tokens..`);
+                const tx = await window.contract.transfer(burnAddress, burnAmount);
+                await tx.wait(); 
+                updateStatus(`Burned ${document.getElementById("burnAmount").value} tokens..`);
+            }
+    
+            function updateStatus(status) {
+                const statusEl = document.getElementById('status');
+                statusEl.innerHTML = status;
+                console.log(status);
+            }
+    
+        async function checkBurnBalance() {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const account = await signer.getAddress();
+          window.contract = new ethers.Contract(
+                '0x85e90a5430af45776548adb82ee4cd9e33b08077',
+                abi,
+                signer
+              );
+    
+                const burnAddress = '0x000000000000000000000000000000000000dEaD';
+                const burnBalance = await window.contract.balanceOf(burnAddress);
+                const formattedBalance = ethers.utils.formatUnits(burnBalance, 18);
+                updateTotalBurn(formattedBalance);
+            }
+    
+            function updateTotalBurn(balance) {
+                const burnEl = document.getElementById('totalBurn');
+                burnEl.innerHTML = balance;
+            }
+    
+        </script>
+
+    <!-- END BLOCK BURN DINO -->
+
+      <div class="grid tc">
+        <div class="page-title tc">
+          <h1 class="alfa title-headline tracked-tight">CODING LAND</h1>
+          <h2 class="merriweather tracked-tight title-deck">made by the community Coding DINO</h2>
+          <p class="ttu f7 b tracked lh-title">TRUST NO ONE BUT THE CODE</p>
+          <a href="https://app.uniswap.org/swap?outputCurrency=0x85E90a5430AF45776548ADB82eE4cD9E33B08077&amp;chain=base" class="ttu f7 b tracked lh-title">buy $Dino</a>
+        </div>
+        
+        <div class="section-1 tc bt">
+            <div class="pb3">
+          <h1 class="alfa tracked-tight section-1-headline">Coding community</h1>
+          <a href="https://t.me/cdnglnd" target="_blank" class="merriweather section-2-subhead i">https://t.me/cdnglnd</a>
+        </div>
+        </div>
+        <div class="hero-image bt bb">
+          <img src="https://erc50.org/assets/dino-CxiK6ReD.gif">
+        </div>
+        <div class="section-2 relative">
+          <h2 class="alfa tracked-tight section-2-headline">ERC50 Launchpad        </h2>
+          <a href="https://erc50.org" target="_blank" class="dnlnks merriweather section-2-subhead i">https://erc50.org</a>
+          <a href="https://twitter.com/ERC_50" target="_blank" class="dnlnks merriweather section-2-subhead i">https://twitter.com/ERC_50</a>
+          <a href="https://t.me/ERC_50/" target="_blank" class="dnlnks merriweather section-2-subhead i">https://t.me/ERC_50/</a>
+          <div class="section-2-subsection-1 br">
+            <img src="/mg/rc50.jpg">
+            <a href="https://dinobase.gitbook.io/dino-erc50" target="_blank" class="ttu b tracked f7 pb2">Learn ERC50</a>
+            <p class="pb3">Welcome to CODING DINO! 🦕🌵 $DINO is the first meme token build on ERC50 protocol. No Admins, No Rats, No Rugs. ERC-20 Compatible, Open Source, Fair Mint.</p>
+            <a href="https://github.com/DamoclesLabs/Audit/blob/main/Dino/Code%20Security%20Audit%20Report%20For%20DINO.pdf" target="_blank" class="ttu b tracked f7 pb2">Audit ERC50</a>
+            <p>Code Security Audit Report For DINO </p>
+          </div>
+          <div class="section-2-subsection-2">
+            <p class="ttu b tracked f7 pb2">Dino has no owner
+                but a deployer</p>
+            <p class="pb3">@DinoBase is the twitter account’s creator of DINO smart contract code, so of the ERC50 standard proposal who deployed the token on the BASE blockchain.</p>
+          </div>
+        </div>
+        <div class="section-3 relative">
+          <h2 class="alfa tracked-tight section-3-headline">CDNGLND</h2>
+            <p class="pb3 section-2-subhead">The highest growth of a project always comes from the community. We must trust each other and the code we write. I want to hope that we can unite to implement incredibly cool ideas. To do this, I created a telegram group with rooms for different languages. Join us and write code together.</p>
+        </div>
+        <div class="section-4 relative">
+          <h2 class="alfa tracked-tight section-4-headline">List projects</h2>
+          <p class="pb3 section-2-subhead">
+            We are creating a $Dino ecosystem, for meme tokens you can buy a Tesla, $Dino is no worse, he is better
+          </p>
+          <a href="https://dinobase.org/" target="_blank" class="dnlnks merriweather section-2-subhead i">https://dinobase.org</a>
+          <a href="https://github.com/salluthdev/erc50-launchpad" target="_blank" class="dnlnks merriweather section-2-subhead i">https://github.com/salluthdev/erc50-launchpad</a>
+         
+          <div class="section-4-subsection-3 pa3">
+
+            <script src="https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js"></script>
+<coingecko-coin-price-chart-widget class="cdngdngck" coin-id="coding-dino" currency="usd" height="300" locale="en"></coingecko-coin-price-chart-widget>
+
+           
+            <p class="sans-serif s4-box s4-ss3-s6 lh-title pv2 b">the site is based on development <a href="https://codepen.io/julesforrest" target="_blank">https://codepen.io/julesforrest</a></p>
+          </div>
+        </div>
+        <div class="section-5 relative">
+            
+          <h2 class="alfa tracked-tight section-5-headline">Official links</h2>
+          <img class="grs section-2-subhead" src="/mg/dnvtr.jpg">
+          <a href="https://twitter.com/DinoBase" target="_blank" class="dnlnks merriweather section-2-subhead i">X/Twitter</a>
+          <a href="https://t.me/DinoBaseChannel" target="_blank" class="dnlnks merriweather section-2-subhead i">Telegram</a>
+          <a href="https://github.com/dinoToTheMoon/erc50" target="_blank" class="dnlnks merriweather section-2-subhead i">Github</a>
+        
+        </div>
+      </div>
+    </div>
+
+</body>
+</html>
